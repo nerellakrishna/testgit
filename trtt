@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Article Writer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+
+        body {
+            background-color: #f5f5f5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+
+        .settings-panel {
+            margin-bottom: 20px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: bold;
+        }
+
+        input[type="text"],
+        input[type="password"],
+        textarea,
+        select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+
+        .editor {
+            margin-top: 20px;
+        }
+
+        #article-content {
+            width: 100%;
+            min-height: 400px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            resize: vertical;
+        }
+
+        .status {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .loading::after {
+            content: '';
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>AI Article Writer</h1>
+        
+        <div class="settings-panel">
+            <div class="input-group">
+                <label for="github-token">GitHub Personal Access Token:</label>
+                <input type="password" id="github-token" placeholder="Enter your GitHub token">
+            </div>
+            <div class="input-group">
+                <label for="repo-name">Repository Name:</label>
+                <input type="text" id="repo-name" placeholder="username/repository">
+            </div>
+            <div class="input-group">
+                <label for="topic">Article Topic:</label>
+                <input type="text" id="topic" placeholder="Enter the topic for your article">
+            </div>
+            <div class="input-group">
+                <label for="tone">Writing Tone:</label>
+                <select id="tone">
+                    <option value="professional">Professional</option>
+                    <option value="casual">Casual</option>
+                    <option value="technical">Technical</option>
+                    <option value="conversational">Conversational</option>
+                </select>
+            </div>
+            <button id="generate-btn">Generate Article</button>
+        </div>
+
+        <div class="editor">
+            <textarea id="article-content" placeholder="Your generated article will appear here..."></textarea>
+            <button id="save-btn">Save to GitHub</button>
+        </div>
+
+        <div class="loading" id="loading"></div>
+        <div id="status" class="status"></div>
+    </div>
+
+    <script>
+        class ArticleWriter {
+            constructor() {
+                this.githubToken = document.getElementById('github-token');
+                this.repoName = document.getElementById('repo-name');
+                this.topic = document.getElementById('topic');
+                this.tone = document.getElementById('tone');
+                this.articleContent = document.getElementById('article-content');
+                this.generateBtn = document.getElementById('generate-btn');
+                this.saveBtn = document.getElementById('save-btn');
+                this.loading = document.getElementById('loading');
+                this.status = document.getElementById('status');
+
+                this.init();
+            }
+
+            init() {
+                this.generateBtn.addEventListener('click', () => this.generateArticle());
+                this.saveBtn.addEventListener('click', () => this.saveToGithub());
+                
+                // Load saved token if exists
+                const savedToken = localStorage.getItem('github-token');
+                if (savedToken) {
+                    this.githubToken.value = savedToken;
+                }
+            }
+
+            showLoading(show) {
+                this.loading.style.display = show ? 'block' : 'none';
+                this.generateBtn.disabled = show;
+                this.saveBtn.disabled = show;
+            }
+
+            showStatus(message, isError = false) {
+                this.status.textContent = message;
+                this.status.className = `status ${isError ? 'error' : 'success'}`;
+            }
+
+            async generateArticle() {
+                if (!this.topic.value) {
+                    this.showStatus('Please enter a topic', true);
+                    return;
+                }
+
+                this.showLoading(true);
+                
+                try {
+                    // Simulate AI article generation with a template
+                    // In a real application, you would call an AI API here
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                    
+                    const template = this.generateArticleTemplate(
+                        this.topic.value,
+                        this.tone.value
+                    );
+                    
+                    this.articleContent.value = template;
+                    this.showStatus('Article generated successfully!');
+                } catch (error) {
+                    this.showStatus('Error generating article: ' + error.message, true);
+                } finally {
+                    this.showLoading(false);
+                }
+            }
+
+            generateArticleTemplate(topic, tone) {
+                const currentDate = new Date().toLocaleDateString();
+                return `# ${topic}\n\nWritten on ${currentDate}\n\nIntroduction:\n${this.getIntroduction(topic, tone)}\n\nMain Content:\n${this.getMainContent(topic, tone)}\n\nConclusion:\n${this.getConclusion(topic, tone)}`;
+            }
+
+            getIntroduction(topic, tone) {
+                const intros = {
+                    professional: `This comprehensive analysis explores ${topic} from a professional perspective...`,
+                    casual: `Hey there! Let's talk about ${topic}...`,
+                    technical: `In this technical deep-dive, we'll examine ${topic} and its core components...`,
+                    conversational: `Have you ever wondered about ${topic}? Let's explore this fascinating topic together...`
+                };
+                return intros[tone] || intros.professional;
+            }
+
+            getMainContent(topic, tone) {
+                // Add more sophisticated content generation logic here
+                return `Here are the key points about ${topic}:\n\n1. First major point\n2. Second major point\n3. Third major point`;
+            }
+
+            getConclusion(topic, tone) {
+                return `In conclusion, ${topic} represents a significant area of interest that warrants further exploration...`;
+            }
+
+            async saveToGithub() {
+                if (!this.validateInputs()) {
+                    return;
+                }
+
+                this.showLoading(true);
+                
+                try {
+                    // Save token for convenience
+                    localStorage.setItem('github-token', this.githubToken.value);
+
+                    const content = this.articleContent.value;
+                    const fileName = this.generateFileName();
+                    
+                    await this.createGithubFile(fileName, content);
+                    this.showStatus('Article saved to GitHub successfully!');
+                } catch (error) {
+                    this.showStatus('Error saving to GitHub: ' + error.message, true);
+                } finally {
+                    this.showLoading(false);
+                }
+            }
+
+            validateInputs() {
+                if (!this.githubToken.value) {
+                    this.showStatus('Please enter your GitHub token', true);
+                    return false;
+                }
+                if (!this.repoName.value) {
+                    this.showStatus('Please enter your repository name', true);
+                    return false;
+                }
+                if (!this.articleContent.value) {
+                    this.showStatus('Please generate or write an article first', true);
+                    return false;
+                }
+                return true;
+            }
+
+            generateFileName() {
+                const date = new Date().toISOString().split('T')[0];
+                const topicSlug = this.topic.value
+                    .toLowerCase()
+                    .replace(/[^a-z0-9]+/g, '-')
+                    .replace(/(^-|-$)/g, '');
+                return `articles/${date}-${topicSlug}.md`;
+            }
+
+            async createGithubFile(path, content) {
+                const apiUrl = `https://api.github.com/repos/${this.repoName.value}/contents/${path}`;
+                
+                const response = await fetch(apiUrl, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `token ${this.githubToken.value}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: `Add article: ${this.topic.value}`,
+                        content: btoa(unescape(encodeURIComponent(content))),
+                        branch: 'main'
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.message);
+                }
+
+                return await response.json();
+            }
+        }
+
+        // Initialize the application
+        new ArticleWriter();
+    </script>
+</body>
+</html>
